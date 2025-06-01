@@ -45,10 +45,21 @@ app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint
 app.get('/health', (_req, res) => {
+  console.log('Health endpoint hit!');
   res.status(200).json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
     version: process.env.npm_package_version || '1.0.0'
+  });
+});
+
+// Root endpoint for debugging
+app.get('/', (_req, res) => {
+  console.log('Root endpoint hit!');
+  res.status(200).json({
+    message: 'Scale Backend API is running',
+    status: 'ok',
+    timestamp: new Date().toISOString()
   });
 });
 
