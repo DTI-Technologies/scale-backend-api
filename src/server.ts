@@ -82,11 +82,15 @@ app.get('/', (_req, res) => {
 // Error handling middleware - temporarily disabled
 // app.use(errorHandler);
 
-// 404 handler
-app.use('*', (_req, res) => {
-  res.status(404).json({
-    error: 'Not Found',
-    message: 'The requested resource was not found'
+// Catch-all route for debugging
+app.use('*', (req, res) => {
+  console.log(`CATCH-ALL: ${req.method} ${req.originalUrl}`);
+  res.status(200).json({
+    message: 'Scale Backend API - Catch All Route',
+    method: req.method,
+    url: req.originalUrl,
+    timestamp: new Date().toISOString(),
+    note: 'If you see this, the Express app is working!'
   });
 });
 
