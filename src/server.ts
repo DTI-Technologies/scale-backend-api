@@ -4,15 +4,16 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
-import { logger } from './utils/logger';
-import { errorHandler } from './middleware/errorHandler';
-import { authRoutes } from './routes/auth';
-import { subscriptionRoutes } from './routes/subscription';
-import { usageRoutes } from './routes/usage';
-import { webhookRoutes } from './routes/webhooks';
 
 // Load environment variables
 dotenv.config();
+
+// Simple logger for debugging
+const logger = {
+  info: (message: string, ...args: any[]) => console.log(`[INFO] ${message}`, ...args),
+  error: (message: string, ...args: any[]) => console.error(`[ERROR] ${message}`, ...args),
+  warn: (message: string, ...args: any[]) => console.warn(`[WARN] ${message}`, ...args)
+};
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -51,14 +52,14 @@ app.get('/health', (_req, res) => {
   });
 });
 
-// API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/subscription', subscriptionRoutes);
-app.use('/api/usage', usageRoutes);
-app.use('/api/webhooks', webhookRoutes);
+// API routes - temporarily disabled for debugging
+// app.use('/api/auth', authRoutes);
+// app.use('/api/subscription', subscriptionRoutes);
+// app.use('/api/usage', usageRoutes);
+// app.use('/api/webhooks', webhookRoutes);
 
-// Error handling middleware
-app.use(errorHandler);
+// Error handling middleware - temporarily disabled
+// app.use(errorHandler);
 
 // 404 handler
 app.use('*', (_req, res) => {
