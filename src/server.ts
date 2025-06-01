@@ -19,8 +19,14 @@ const PORT = process.env.PORT || 3000;
 
 // Security middleware
 app.use(helmet());
+
+// CORS configuration
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+  : ['http://localhost:3000', 'https://scaleprotocol.net'];
+
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
+  origin: allowedOrigins,
   credentials: true
 }));
 
