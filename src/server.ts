@@ -18,6 +18,10 @@ const logger = {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+console.log('Initializing Express app...');
+console.log('PORT:', PORT);
+console.log('NODE_ENV:', process.env.NODE_ENV);
+
 // Security middleware
 app.use(helmet());
 
@@ -38,6 +42,12 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.'
 });
 app.use('/api/', limiter);
+
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -97,9 +107,10 @@ const startServer = async () => {
   try {
     await connectDB();
 
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       logger.info(`Scale Backend API server running on port ${PORT}`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      logger.info(`Server listening on 0.0.0.0:${PORT}`);
     });
   } catch (error) {
     logger.error('Failed to start server:', error);
