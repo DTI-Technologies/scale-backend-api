@@ -16,7 +16,7 @@ const logger = {
 };
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 console.log('Initializing Express app...');
 console.log('PORT:', PORT);
@@ -44,7 +44,7 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 // Request logging middleware
-app.use((req, res, next) => {
+app.use((req, _res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   next();
 });
@@ -107,10 +107,10 @@ const startServer = async () => {
   try {
     await connectDB();
 
-    app.listen(PORT, '0.0.0.0', () => {
+    app.listen(PORT, () => {
       logger.info(`Scale Backend API server running on port ${PORT}`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-      logger.info(`Server listening on 0.0.0.0:${PORT}`);
+      console.log('Express app initialized and listening');
     });
   } catch (error) {
     logger.error('Failed to start server:', error);
