@@ -300,6 +300,94 @@ router.get('/purchase/:tier', [
   }
 });
 
+// Manual subscription verification (for PayLinks)
+router.post('/verify-payment', [
+  body('userId').notEmpty().withMessage('User ID is required'),
+  body('tier').isIn(['fan', 'developer', 'enterprise']).withMessage('Invalid subscription tier'),
+  body('transactionId').optional().isString(),
+  body('email').optional().isEmail()
+], async (req: Request, res: Response) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation Error',
+        details: errors.array()
+      });
+    }
+
+    const { userId, tier, transactionId, email } = req.body;
+
+    // Find or create user
+    let user = await User.findOne({ userId });
+    if (!user) {
+      user = new User({
+        userId,
+        email: email || `user-${userId}@scale.local`,
+        subscription: {
+          tier: SubscriptionTier.FAN,
+          status: SubscriptionStatus.INACTIVE,
+          startDate: new Date(),
+          isTrialActive: true,
+          trialEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days trial
+        },
+        features: ['chat', 'agent', 'codeCompletion'],
+        usageQuota: {
+          promptsPerMonth: 75,
+          promptsUsed: 0,
+          resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        }
+      });
+    }
+
+    // Update subscription based on tier
+    const tierEnum = tier.toUpperCase() as keyof typeof SubscriptionTier;
+    user.subscription.tier = SubscriptionTier[tierEnum];
+    user.subscription.status = SubscriptionStatus.ACTIVE;
+    user.subscription.startDate = new Date();
+    user.subscription.endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    user.subscription.renewalDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    if (transactionId) {
+      user.subscription.goDaddySubscriptionId = transactionId;
+    }
+
+    // Update features and quota based on tier
+    const tierConfig = getTierConfiguration(user.subscription.tier);
+    user.features = tierConfig.features;
+    user.usageQuota.promptsPerMonth = tierConfig.promptsPerMonth;
+
+    await user.save();
+
+    logger.info(`Manual subscription verification completed: ${userId} -> ${tier} (Transaction: ${transactionId})`);
+
+    res.json({
+      success: true,
+      message: 'Subscription verified and activated successfully',
+      user: {
+        userId: user.userId,
+        tier: user.subscription.tier,
+        status: user.subscription.status,
+        features: user.features,
+        usageQuota: {
+          promptsPerMonth: user.usageQuota.promptsPerMonth,
+          promptsUsed: user.usageQuota.promptsUsed,
+          promptsRemaining: user.usageQuota.promptsPerMonth === -1 ? -1 : user.usageQuota.promptsPerMonth - user.usageQuota.promptsUsed,
+          resetDate: user.usageQuota.resetDate
+        },
+        renewalDate: user.subscription.renewalDate
+      }
+    });
+
+  } catch (error) {
+    logger.error('Manual subscription verification error:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to verify subscription'
+    });
+  }
+});
+
 // Helper function to get tier configuration
 function getTierConfiguration(tier: SubscriptionTier) {
   switch (tier) {
