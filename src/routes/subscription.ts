@@ -243,6 +243,63 @@ router.get('/:userId', [
   }
 });
 
+// Get subscription purchase URL (PayLinks)
+router.get('/purchase/:tier', [
+  param('tier').isIn(['fan', 'developer', 'enterprise']).withMessage('Invalid subscription tier')
+], async (req: Request, res: Response) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation Error',
+        details: errors.array()
+      });
+    }
+
+    const { tier } = req.params;
+    const { userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'User ID is required'
+      });
+    }
+
+    // PayLink URLs for each tier
+    const payLinks: { [key: string]: string } = {
+      'fan': process.env.GODADDY_PAYLINK_FAN || 'https://scaleprotocol.net/pricing',
+      'developer': process.env.GODADDY_PAYLINK_DEVELOPER || 'https://scaleprotocol.net/pricing',
+      'enterprise': process.env.GODADDY_PAYLINK_ENTERPRISE || 'https://scaleprotocol.net/pricing'
+    };
+
+    const tierLower = tier.toLowerCase();
+
+    // Log the purchase attempt for tracking
+    logger.info(`Subscription purchase initiated: ${userId} -> ${tierLower}`);
+
+    res.json({
+      success: true,
+      paymentUrl: payLinks[tierLower],
+      tier: tierLower,
+      message: 'Complete payment and return to VS Code to verify subscription',
+      instructions: [
+        '1. Click the payment link to open GoDaddy PayLink',
+        '2. Complete your payment securely with GoDaddy',
+        '3. Return to VS Code and use "Scale: Verify Subscription" command',
+        '4. Your subscription will be activated automatically'
+      ]
+    });
+
+  } catch (error) {
+    logger.error('Failed to get subscription purchase URL:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to get purchase URL'
+    });
+  }
+});
+
 // Helper function to get tier configuration
 function getTierConfiguration(tier: SubscriptionTier) {
   switch (tier) {
